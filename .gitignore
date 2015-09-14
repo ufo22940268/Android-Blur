@@ -1,0 +1,11 @@
+#OSX
+.DS_Store
+target/
+
+.idea/
+*.iml
+
+#Gradle
+build/
+.gradle/
+local.properties
