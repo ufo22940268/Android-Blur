@@ -89,12 +89,12 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
 
                     "lowp vec4 fragmentColor;\n" +
                     "float caliY =1.0/screenRatio*(gl_PointCoord.y - focusLocation.y); \n" +
-                    "float radius = sqrt(pow(abs(gl_PointCoord.x - focusLocation.x), 2) + pow(abs(caliY), 2));\n" +
+                    "float radius = sqrt(pow(abs(gl_PointCoord.x - focusLocation.x), 2.0) + pow(abs(caliY), 2.0));\n" +
                     "float centerRadius = 0.2;\n" +
                     "if (radius < centerRadius) {\n" +
                     "fragmentColor = texture2D(inputImageTexture, centerTextureCoordinate);\n" +
                     "} else {\n" +
-                    "float weight = min(pow(radius/1.0, 2) * 1.4, 2.0);\n" +
+                    "float weight = min(pow(radius/1.0, 2.0) * 1.4, 2.0);\n" +
                     "vec2 firstOffset = vec2(1.5 * weight * texelWidthOffset, 1.5 * weight * texelHeightOffset);\n" +
                     "vec2 secondOffset = vec2(3.5 * weight * texelWidthOffset, 3.5 * weight * texelHeightOffset);\n" +
 

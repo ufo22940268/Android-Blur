@@ -7,3 +7,5 @@ All filter operation is done in OpenGL.
 
 
 This project is based on [android-gpuimage](https://github.com/CyberAgent/android-gpuimage)
+
+[APK](./art/sample-debug.apk)
