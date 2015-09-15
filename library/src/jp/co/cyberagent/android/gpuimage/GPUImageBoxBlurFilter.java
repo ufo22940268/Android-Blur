@@ -16,6 +16,8 @@
 
 package jp.co.cyberagent.android.gpuimage;
 
+import android.opengl.GLES20;
+
 /**
  * A hardware-accelerated 9-hit box blur of an image
  * <p/>
@@ -60,6 +62,8 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
                     "uniform sampler2D inputImageTexture;\n" +
                     "uniform float texelWidthOffset; \n" +
                     "uniform float texelHeightOffset; \n" +
+                    "uniform float screenRatio; \n" +
+//                    "float screenRatio = 0.6; \n" +
                     "\n" +
                     "varying vec2 centerTextureCoordinate;\n" +
                     "varying vec2 oneStepLeftTextureCoordinate;\n" +
@@ -82,7 +86,8 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
                     "}\n" +
 
                     "lowp vec4 fragmentColor;\n" +
-                    "float radius = sqrt(pow(abs(gl_PointCoord.x), 2) + pow(abs(gl_PointCoord.y), 2));\n" +
+                    "float caliY =1.0/screenRatio*gl_PointCoord.y; \n" +
+                    "float radius = sqrt(pow(abs(gl_PointCoord.x), 2) + pow(abs(caliY), 2));\n" +
                     "float centerRadius = 0.2;\n" +
                     "if (radius < centerRadius) {\n" +
                     "fragmentColor = texture2D(inputImageTexture, centerTextureCoordinate);\n" +
@@ -106,6 +111,20 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
                     "}\n";
 
     private float blurSize = 1f;
+
+    @Override
+    public void onOutputSizeChanged(int width, int height) {
+        super.onOutputSizeChanged(width, height);
+        float ratio = (float)mOutputWidth/mOutputHeight;
+
+        GPUImageFilter filter = mFilters.get(0);
+        int screenRatioLocation = GLES20.glGetUniformLocation(filter.getProgram(), "screenRatio");
+        filter.setFloat(screenRatioLocation, ratio);
+
+        filter = mFilters.get(1);
+        screenRatioLocation = GLES20.glGetUniformLocation(filter.getProgram(), "screenRatio");
+        filter.setFloat(screenRatioLocation, ratio);
+    }
 
     /**
      * Construct new BoxBlurFilter with default blur size of 1.0.
