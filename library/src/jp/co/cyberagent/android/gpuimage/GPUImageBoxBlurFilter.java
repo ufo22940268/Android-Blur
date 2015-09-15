@@ -18,6 +18,8 @@ package jp.co.cyberagent.android.gpuimage;
 
 import android.opengl.GLES20;
 
+import java.util.Arrays;
+
 /**
  * A hardware-accelerated 9-hit box blur of an image
  * <p/>
@@ -42,7 +44,7 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
                     "\n" +
                     "void main()\n" +
                     "{\n" +
-                    "log = -10;\n" +
+                    "log = -10.0;\n" +
                     "gl_Position = position;\n" +
                     "vec2 firstOffset;\n" +
                     "vec2 secondOffset;\n" +
@@ -63,7 +65,7 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
                     "uniform float texelWidthOffset; \n" +
                     "uniform float texelHeightOffset; \n" +
                     "uniform float screenRatio; \n" +
-//                    "float screenRatio = 0.6; \n" +
+                    "uniform vec2 focusLocation; \n" +
                     "\n" +
                     "varying vec2 centerTextureCoordinate;\n" +
                     "varying vec2 oneStepLeftTextureCoordinate;\n" +
@@ -80,19 +82,19 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
                     "\n" +
                     "void main()\n" +
                     "{\n" +
-                    "if (log != -10) {\n" +
+                    "if (log != -10.0) {\n" +
                     "gl_FragColor = vec4(log, 0.0, 0.0, 1.0);\n" +
                     "return;\n" +
                     "}\n" +
 
                     "lowp vec4 fragmentColor;\n" +
-                    "float caliY =1.0/screenRatio*gl_PointCoord.y; \n" +
-                    "float radius = sqrt(pow(abs(gl_PointCoord.x), 2) + pow(abs(caliY), 2));\n" +
+                    "float caliY =1.0/screenRatio*(gl_PointCoord.y - focusLocation.y); \n" +
+                    "float radius = sqrt(pow(abs(gl_PointCoord.x - focusLocation.x), 2) + pow(abs(caliY), 2));\n" +
                     "float centerRadius = 0.2;\n" +
                     "if (radius < centerRadius) {\n" +
                     "fragmentColor = texture2D(inputImageTexture, centerTextureCoordinate);\n" +
                     "} else {\n" +
-                    "float weight = pow(radius/1.0, 2) * 1.4;\n" +
+                    "float weight = min(pow(radius/1.0, 2) * 1.4, 2.0);\n" +
                     "vec2 firstOffset = vec2(1.5 * weight * texelWidthOffset, 1.5 * weight * texelHeightOffset);\n" +
                     "vec2 secondOffset = vec2(3.5 * weight * texelWidthOffset, 3.5 * weight * texelHeightOffset);\n" +
 
@@ -115,7 +117,7 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
     @Override
     public void onOutputSizeChanged(int width, int height) {
         super.onOutputSizeChanged(width, height);
-        float ratio = (float)mOutputWidth/mOutputHeight;
+        float ratio = (float) mOutputWidth / mOutputHeight;
 
         GPUImageFilter filter = mFilters.get(0);
         int screenRatioLocation = GLES20.glGetUniformLocation(filter.getProgram(), "screenRatio");
@@ -162,5 +164,26 @@ public class GPUImageBoxBlurFilter extends GPUImageTwoPassTextureSamplingFilter 
     @Override
     public float getHorizontalTexelOffsetRatio() {
         return blurSize;
+    }
+
+    public void focus(final float x, final float y) {
+        runOnDraw(new Runnable() {
+            @Override
+            public void run() {
+                float[] focusLocation = new float[]{normalize(x, mOutputWidth), -normalize(y, mOutputHeight)};
+                GPUImageFilter filter = mFilters.get(0);
+                int screenRatioLocation = GLES20.glGetUniformLocation(filter.getProgram(), "focusLocation");
+                filter.setFloatVec2(screenRatioLocation, focusLocation);
+
+                filter = mFilters.get(1);
+                screenRatioLocation = GLES20.glGetUniformLocation(filter.getProgram(), "focusLocation");
+                filter.setFloatVec2(screenRatioLocation, focusLocation);
+                initTexelOffsets();
+            }
+        });
+    }
+
+    private float normalize(float x, int outputWidth) {
+        return x / outputWidth * 2 - 1;
     }
 }
